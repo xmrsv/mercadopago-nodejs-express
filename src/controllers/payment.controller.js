@@ -8,11 +8,23 @@ import {
   MERCADOPAGO_API_KEY,
   WEBHOOK_URL,
 } from "../config.js";
+import { logger } from "../utils/logger.js";
+
+logger.info("Configuring MercadoPago...");
+mercadopage.configure({
+  access_token: MERCADOPAGO_API_KEY,
+});
+logger.info("MercadoPago configured!");
 
 export const createOrder = async (req, res) => {
-  mercadopage.configure({
-    access_token: MERCADOPAGO_API_KEY,
-  });
+
+  const newOrderItem = {
+    title: req.body.title,
+    unit_price: req.body.unit_price,
+    description: req.body.description,
+    currency_id: "PEN",
+    quantity: req.body.quantity,
+  };
 
   try {
     const result = await mercadopage.preferences.create({
@@ -37,25 +49,26 @@ export const createOrder = async (req, res) => {
 
     console.log(result);
 
-    // res.json({ message: "Payment creted" });
+    logger.info("Order created" + JSON.stringify(result));
     res.json(result.body);
   } catch (error) {
-    return res.status(500).json({ message: "Something goes wrong" });
+    logger.error(error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
 
 export const receiveWebhook = async (req, res) => {
   try {
     const payment = req.query;
-    console.log(payment);
+    logger.info("Payment received" + JSON.stringify(payment));
     if (payment.type === "payment") {
       const data = await mercadopage.payment.findById(payment["data.id"]);
-      console.log(data);
+      logger.info("Payment data" + JSON.stringify(data));
     }
 
     res.sendStatus(204);
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Something goes wrong" });
+    logger.error(error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
